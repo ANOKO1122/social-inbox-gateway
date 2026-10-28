@@ -1,0 +1,12 @@
+# Optional: attach the gateway to an existing Dify Docker network.
+# docker compose -f docker-compose.yml -f docker-compose.dify.yml up -d --build
+services:
+  gateway:
+    networks:
+      - sig-net
+      - dify
+
+networks:
+  dify:
+    external: true
+    name: ${DIFY_DOCKER_NETWORK:-dify_default}

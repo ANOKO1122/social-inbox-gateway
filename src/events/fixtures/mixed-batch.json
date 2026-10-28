@@ -1,0 +1,89 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "PAGE_ID_1",
+      "time": 1760000205,
+      "messaging": [
+        {
+          "sender": { "id": "PSID_1" },
+          "recipient": { "id": "PAGE_ID_1" },
+          "timestamp": 1760000200123,
+          "message": { "mid": "MID_FB_MIX_1", "text": "Fake first message" }
+        },
+        {
+          "sender": { "id": "PAGE_ID_1" },
+          "recipient": { "id": "PSID_1" },
+          "timestamp": 1760000201123,
+          "message": { "is_echo": true, "mid": "MID_FB_MIX_ECHO", "text": "Fake echo" }
+        },
+        {
+          "sender": { "id": "PSID_1" },
+          "recipient": { "id": "PAGE_ID_1" },
+          "timestamp": 1760000202123,
+          "delivery": { "mids": ["MID_FB_MIX_ECHO"], "watermark": 1760000201000 }
+        },
+        {
+          "sender": { "id": "PSID_2" },
+          "recipient": { "id": "PAGE_ID_1" },
+          "timestamp": 1760000203123,
+          "message": { "mid": "MID_FB_MIX_2", "text": "Fake second message" }
+        }
+      ],
+      "changes": [
+        {
+          "field": "feed",
+          "value": {
+            "from": { "id": "PSID_3", "name": "Test User Three" },
+            "item": "comment",
+            "comment_id": "COMMENT_ID_MIX_1",
+            "post_id": "POST_ID_1",
+            "verb": "add",
+            "parent_id": "POST_ID_1",
+            "created_time": 1760000204,
+            "message": "Fake comment in a mixed batch"
+          }
+        },
+        "malformed-change",
+        {
+          "field": "feed",
+          "value": {
+            "item": "comment",
+            "verb": "add",
+            "post_id": "POST_ID_1",
+            "created_time": 1760000204,
+            "message": "Malformed: no comment_id and no sender"
+          }
+        },
+        {
+          "field": "feed",
+          "value": {
+            "from": { "id": "PSID_1" },
+            "item": "post",
+            "post_id": "POST_ID_2",
+            "verb": "add",
+            "created_time": 1760000204,
+            "message": "Fake post, not a comment"
+          }
+        }
+      ]
+    },
+    "malformed-entry",
+    null,
+    {
+      "id": "PAGE_ID_2",
+      "time": 1760000215,
+      "messaging": [
+        null,
+        42,
+        { "sender": "not-an-object", "message": { "mid": "MID_FB_BAD_1", "text": "Malformed sender" }, "timestamp": 1760000210123 },
+        {
+          "sender": { "id": "PSID_4" },
+          "recipient": { "id": "PAGE_ID_2" },
+          "timestamp": 1760000211123,
+          "message": { "mid": "MID_FB_MIX_3", "text": "Fake message on another page" }
+        }
+      ]
+    }
+  ]
+}

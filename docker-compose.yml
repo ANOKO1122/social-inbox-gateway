@@ -1,0 +1,146 @@
+# Isolated deployment of the Meta webhook gateway.
+# - Own project name, own network (sig-net) and own volume; nothing is shared with other stacks.
+# - Only the gateway publishes a port, and only on the loopback interface.
+# - The database is reachable solely over the compose-internal network.
+# Secrets come from a git-ignored .env file (see .env.example); compose fails loudly when unset.
+name: social-inbox-gateway
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-gateway-image: &gateway-image
+  image: social-inbox-gateway:local
+  build:
+    context: .
+
+# Database URL is assembled here; keep POSTGRES_PASSWORD URL-safe (e.g. `openssl rand -hex 24`).
+x-database-url: &database-url postgresql://sig:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/sig
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sig
+      POSTGRES_DB: sig
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    # Small footprint on purpose: the host has little spare memory.
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=30"]
+    # NO `ports:` on purpose. Never publish the database on the host.
+    volumes:
+      - sig-db-data:/var/lib/postgresql/data
+    networks:
+      - sig-net
+    shm_size: 128m
+    healthcheck:
+      # `-h 127.0.0.1` forces a TCP check. On first initialisation the official image runs a
+      # temporary server that listens on the unix socket only; a socket check can report
+      # "healthy" too early and migrate could start before the real server is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U sig -d sig"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384m
+    logging: *default-logging
+
+  migrate:
+    <<: *gateway-image
+    command: ["node", "dist/db/migrate-cli.js"]
+    restart: "no"
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sig-net
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
+    logging: *default-logging
+
+  gateway:
+    <<: *gateway-image
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "4010"
+      # Bind address INSIDE the container only. Host exposure is decided by `ports` below.
+      HOST: 0.0.0.0
+      DATABASE_URL: *database-url
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:?Set META_VERIFY_TOKEN in .env}
+      META_APP_SECRET: ${META_APP_SECRET:?Set META_APP_SECRET in .env}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
+      # Empty means no channel can send. A JSON object maps channel_id to a token.
+      META_CHANNEL_TOKENS: ${META_CHANNEL_TOKENS:-}
+      META_APP_ID: ${META_APP_ID:?Set META_APP_ID in .env}
+      META_OAUTH_REDIRECT_URI: ${META_OAUTH_REDIRECT_URI:?Set META_OAUTH_REDIRECT_URI in .env}
+      META_TOKEN_KEY: ${META_TOKEN_KEY:?Set META_TOKEN_KEY in .env}
+      CONNECT_PASSWORD: ${CONNECT_PASSWORD:?Set CONNECT_PASSWORD in .env}
+      DINGTALK_CLIENT_ID: ${DINGTALK_CLIENT_ID:?Set DINGTALK_CLIENT_ID in .env}
+      DINGTALK_CLIENT_SECRET: ${DINGTALK_CLIENT_SECRET:?Set DINGTALK_CLIENT_SECRET in .env}
+      DINGTALK_APP_ID: ${DINGTALK_APP_ID:-}
+      # Both empty keeps suggestions off. Set both to call the Dify workflow on the compose network.
+      DIFY_API_BASE: ${DIFY_API_BASE:-}
+      DIFY_API_KEY: ${DIFY_API_KEY:-}
+      RULE_AI_API_KEY: ${RULE_AI_API_KEY:-}
+    ports:
+      - "127.0.0.1:4010:4010"
+    # Longer than the 10 s hard shutdown timeout in the code, so the process exits by itself first.
+    stop_grace_period: 15s
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - sig-net
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4010/health/live').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+    logging: *default-logging
+
+networks:
+  sig-net:
+
+volumes:
+  sig-db-data:

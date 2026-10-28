@@ -1,0 +1,21 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "PAGE_ID_1",
+      "time": 1760000055000,
+      "messaging": [
+        {
+          "sender": { "id": "PSID_1" },
+          "recipient": { "id": "PAGE_ID_1" },
+          "timestamp": 1760000050123,
+          "message": {
+            "mid": "MID_FB_1",
+            "text": "Fake private message",
+            "unknown_future_field": "ignored"
+          }
+        }
+      ]
+    }
+  ]
+}

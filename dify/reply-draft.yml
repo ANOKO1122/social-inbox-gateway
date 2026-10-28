@@ -1,0 +1,198 @@
+app:
+  description: 客服点击后生成一条可编辑的回复草稿。不翻译，不自动发送。
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 客服回复草稿
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: start-to-llm
+      source: start_node
+      sourceHandle: source
+      target: llm_node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: llm-to-end
+      source: llm_node
+      sourceHandle: source
+      target: end_node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: platform
+          max_length: 32
+          options: []
+          required: true
+          type: text-input
+          variable: platform
+        - label: kind
+          max_length: 16
+          options: []
+          required: true
+          type: text-input
+          variable: kind
+        - label: text
+          max_length: 4000
+          options: []
+          required: true
+          type: paragraph
+          variable: text
+        - label: post_text
+          max_length: 2000
+          options: []
+          required: false
+          type: paragraph
+          variable: post_text
+        - label: reply_to
+          max_length: 80
+          options: []
+          required: false
+          type: text-input
+          variable: reply_to
+        - label: context
+          max_length: 4000
+          options: []
+          required: false
+          type: paragraph
+          variable: context
+      height: 168
+      id: start_node
+      position:
+        x: 30
+        y: 180
+      positionAbsolute:
+        x: 30
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 只草拟回复，不翻译
+        memory:
+          enabled: false
+          window:
+            enabled: false
+            size: 10
+        model:
+          completion_params:
+            max_tokens: 500
+            temperature: 0.2
+          mode: chat
+          name: deepseek-v4.1-flash
+          provider: langgenius/opencode_go/opencode_go
+        prompt_template:
+        - role: system
+          text: |
+            你是服装跨境店铺的客服草稿助手。只输出一个 JSON 对象，不要 Markdown，不要解释，不要翻译过程。
+            字段：
+            intent：小写英文和下划线，取 size_question、material、shipping、refund、order、product、complaint、greeting、other 之一。
+            suggested_reply：用客户原文的语言写一条简短、礼貌、可以直接发送的回复。
+            needs_human：布尔值。投诉、订单、退款、物流、尺码、材质、库存或任何商品事实没有写在输入里时为 true。
+            sources：字符串数组。没有提供知识库资料时必须是空数组。
+            禁止编造尺码、材质、库存、价格、物流时效、退款规则和订单状态。资料不足时，只请客户补充信息，或说明需要同事确认后再回复。
+        - role: user
+          text: |
+            平台：{{#start_node.platform#}}
+            类型：{{#start_node.kind#}}
+            客户原文：{{#start_node.text#}}
+            帖子：{{#start_node.post_text#}}
+            这是在回复：{{#start_node.reply_to#}}
+            上下文：
+            {{#start_node.context#}}
+        retry_config:
+          enabled: false
+          max_retries: 1
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          enabled: false
+        title: 草稿
+        type: llm
+        vision:
+          enabled: false
+      height: 98
+      id: llm_node
+      position:
+        x: 334
+        y: 180
+      positionAbsolute:
+        x: 334
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - llm_node
+          - text
+          value_type: string
+          variable: text
+        selected: false
+        title: 结束
+        type: end
+      height: 90
+      id: end_node
+      position:
+        x: 638
+        y: 180
+      positionAbsolute:
+        x: 638
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8

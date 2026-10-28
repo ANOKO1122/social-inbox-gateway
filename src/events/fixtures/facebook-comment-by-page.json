@@ -1,0 +1,24 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "PAGE_ID_1",
+      "time": 1760000025,
+      "changes": [
+        {
+          "field": "feed",
+          "value": {
+            "from": { "id": "PAGE_ID_1", "name": "Test Page" },
+            "item": "comment",
+            "comment_id": "COMMENT_ID_3",
+            "post_id": "POST_ID_1",
+            "verb": "add",
+            "parent_id": "COMMENT_ID_1",
+            "created_time": 1760000020,
+            "message": "Fake reply written by the page itself"
+          }
+        }
+      ]
+    }
+  ]
+}

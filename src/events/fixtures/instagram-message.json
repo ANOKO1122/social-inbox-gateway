@@ -1,0 +1,20 @@
+{
+  "object": "instagram",
+  "entry": [
+    {
+      "id": "IG_ID_1",
+      "time": 1760000135000,
+      "messaging": [
+        {
+          "sender": { "id": "IGSID_1" },
+          "recipient": { "id": "IG_ID_1" },
+          "timestamp": 1760000130456,
+          "message": {
+            "mid": "MID_IG_1",
+            "text": "Fake Instagram direct message"
+          }
+        }
+      ]
+    }
+  ]
+}

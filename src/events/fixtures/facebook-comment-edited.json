@@ -1,0 +1,24 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "PAGE_ID_1",
+      "time": 1760000035,
+      "changes": [
+        {
+          "field": "feed",
+          "value": {
+            "from": { "id": "PSID_1", "name": "Test User One" },
+            "item": "comment",
+            "comment_id": "COMMENT_ID_1",
+            "post_id": "POST_ID_1",
+            "verb": "edited",
+            "parent_id": "POST_ID_1",
+            "created_time": 1760000030,
+            "message": "Fake edited comment text"
+          }
+        }
+      ]
+    }
+  ]
+}

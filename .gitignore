@@ -1,0 +1,25 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+coverage/
+.superpowers/
+
+# Deployment-only overrides, credentials, runtime data and database exports.
+docker-compose.override.yml
+docker-compose.*.local.yml
+docker-compose.remote-db.yml
+remote-db.nginx.conf
+secrets/
+certs/
+backups/
+data/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.dump
+*.backup
+*.log

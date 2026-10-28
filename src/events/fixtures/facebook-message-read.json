@@ -1,0 +1,19 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "PAGE_ID_1",
+      "time": 1760000085000,
+      "messaging": [
+        {
+          "sender": { "id": "PSID_1" },
+          "recipient": { "id": "PAGE_ID_1" },
+          "timestamp": 1760000080123,
+          "read": {
+            "watermark": 1760000080000
+          }
+        }
+      ]
+    }
+  ]
+}

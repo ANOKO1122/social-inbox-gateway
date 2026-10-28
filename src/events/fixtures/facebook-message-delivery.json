@@ -1,0 +1,20 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "PAGE_ID_1",
+      "time": 1760000075000,
+      "messaging": [
+        {
+          "sender": { "id": "PSID_1" },
+          "recipient": { "id": "PAGE_ID_1" },
+          "timestamp": 1760000070123,
+          "delivery": {
+            "mids": ["MID_FB_ECHO_1"],
+            "watermark": 1760000070000
+          }
+        }
+      ]
+    }
+  ]
+}
