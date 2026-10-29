@@ -193,6 +193,7 @@ export interface StaffStore {
   login(unionId: string, name: string): Promise<{ status: 'ok'; staff: Staff } | { status: 'disabled' }>;
   byUnionId(unionId: string): Promise<Staff | null>;
   listComments(staff: Staff, platform?: 'facebook' | 'instagram', source?: string, queue?: InboxQueue): Promise<InboxComment[]>;
+  pendingReviewCounts?(staff: Staff): Promise<{ facebook: number; instagram: number }>;
   listInboxPage?(staff: Staff, platform?: 'facebook' | 'instagram', source?: string, queue?: InboxQueue, options?: InboxPageOptions): Promise<InboxPage>;
   resolveReview?(staff: Staff, eventId: string): Promise<'dismissed' | 'not_found' | 'not_open'>;
   commentsAfter(staff: Staff, since: Date): Promise<InboxComment[]>;
@@ -322,6 +323,14 @@ export class StaffRepository implements StaffStore {
     const hasMore = envelope?.has_more === true;
     const endCursor = encodeInboxCursor(items.at(-1));
     return { rows, total: Number(envelope?.total ?? 0), hasMore, endCursor, nextCursor: hasMore ? endCursor : null };
+  }
+
+  async pendingReviewCounts(staff: Staff): Promise<{ facebook: number; instagram: number }> {
+    const result = await this.db.query(`WITH pending AS (${commentSql("AND run.decision = 'review' AND run.review_status = 'open' AND revision.deleted IS NOT TRUE AND sent.has_live IS NOT TRUE")})
+      SELECT count(*) FILTER (WHERE platform = 'facebook')::int AS facebook,
+        count(*) FILTER (WHERE platform = 'instagram')::int AS instagram
+      FROM pending WHERE NOT is_own`, [staff.role === 'admin', staff.id]);
+    return { facebook: Number(result.rows[0]?.facebook ?? 0), instagram: Number(result.rows[0]?.instagram ?? 0) };
   }
 
   async commentsAfter(staff: Staff, since: Date): Promise<InboxComment[]> {

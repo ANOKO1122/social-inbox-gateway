@@ -398,3 +398,27 @@ test('suggest stays optional when Dify is not configured', async () => {
   assert.equal(response.status, 503);
   assert.match(response.body.message, /手写回复/);
 });
+
+
+test('review counts show each platform total and refresh independently of conversation filters', async () => {
+  const store = staffStore(agent);
+  let counts = { facebook: 54, instagram: 9 };
+  store.pendingReviewCounts = async (staff) => {
+    assert.equal(staff.id, agent.id);
+    return counts;
+  };
+  const session = sealPayload(staffSigningKey(TOKEN_KEY), {
+    kind: 'staff', unionId: agent.unionId, exp: Math.floor(Date.now() / 1000) + 300,
+  });
+  const app = appFor(store);
+  const page = await request(app).get('/inbox/workbench/instagram').set('Cookie', `sig_staff=${session}`);
+  assert.equal(page.status, 200);
+  assert.match(page.text, /data-review-count="facebook"[^>]*> \(54\)<\/span>/);
+  assert.match(page.text, /data-review-count="instagram"[^>]*> \(9\)<\/span>/);
+  assert.match(page.text, /data-queue-filter="review"[^>]*>人工审核 \(9\)<\/button>/);
+  counts = { facebook: 53, instagram: 0 };
+  const queue = await request(app).get('/inbox/workbench/queue?platform=instagram&q=missing&kind=message')
+    .set('Cookie', `sig_staff=${session}`);
+  assert.equal(queue.status, 200);
+  assert.deepEqual(queue.body.reviewCounts, counts);
+});

@@ -8,6 +8,7 @@ import { facebookCommentUrl, instagramCommentUrl } from './comment-link.js';
 export interface WorkbenchView {
   platform?: 'facebook' | 'instagram';
   queue?: InboxQueue;
+  reviewCounts?: { facebook: number; instagram: number };
   staff: Staff;
   comments: InboxComment[];
   inboxPage?: { total: number; hasMore: boolean; nextCursor: string | null; endCursor: string | null };
@@ -66,6 +67,7 @@ const CSS = `
 .review-category { margin:0 16px 12px; color:var(--quiet); font-size:12px; }
 .review-category-buttons { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-top:6px; }
 .review-category-buttons .chip { min-height:34px; padding:0 4px; color:var(--ink); font-size:13px; white-space:nowrap; }
+.review-category-buttons [data-queue-filter="review"] { white-space:normal; }
 .review-category-buttons .chip:hover:not([aria-pressed="true"]) { background:var(--sheet); border-color:var(--ink); }
 .rule-review { margin-top:12px; padding:10px 12px; border-left:3px solid #c2ad57; background:#f5f2e7; font-size:12px; }
 .rule-review-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -610,13 +612,13 @@ td .meta { display: block; margin-top: .15rem; }
 }
 `;
 
-export function shell(input: { title: string; nonce: string; staff: Staff | null; section: Section; body: string }): string {
+export function shell(input: { title: string; nonce: string; staff: Staff | null; section: Section; body: string; reviewCounts?: { facebook: number; instagram: number } }): string {
   const staff = input.staff;
   const current = (section: Section) => input.section === section ? ' aria-current="page"' : '';
   const nav = staff
     ? `<nav>
-        <a href="/inbox/workbench/facebook"${current('comments')}>Facebook</a>
-        <a href="/inbox/workbench/instagram"${current('instagram')}>Instagram</a>
+        <a href="/inbox/workbench/facebook"${current('comments')}>Facebook<span data-review-count="facebook" title="待人工审核条数">${input.reviewCounts ? ` (${input.reviewCounts.facebook})` : ''}</span></a>
+        <a href="/inbox/workbench/instagram"${current('instagram')}>Instagram<span data-review-count="instagram" title="待人工审核条数">${input.reviewCounts ? ` (${input.reviewCounts.instagram})` : ''}</span></a>
         ${staff.role === 'admin'
           ? `<a href="/inbox/admin"${current('admin')}>管理</a><a href="/inbox/admin/statistics"${current('statistics')}>统计</a><a href="/inbox/dify/">知识库（dify）</a><a href="/inbox/connect">主页授权</a><a href="/launches">定时发帖（postiz）</a>`
           : `<a href="/inbox/admin/audit"${current('audit')}>我的记录</a>`}
@@ -809,6 +811,18 @@ export function shell(input: { title: string; nonce: string; staff: Staff | null
         const data = await response.json();
         if (version !== queueVersion || filterKey !== queueFilterKey()) return;
         if (!Array.isArray(data.rows)) throw new Error('queue_unavailable');
+        if (data.reviewCounts) {
+          for (const platform of ['facebook', 'instagram']) {
+            const count = data.reviewCounts[platform];
+            if (!Number.isSafeInteger(count) || count < 0) continue;
+            const badge = document.querySelector('[data-review-count="' + platform + '"]');
+            if (badge) badge.textContent = ' (' + count + ')';
+            if (platform === inboxPlatform) {
+              const category = document.querySelector('[data-queue-filter="review"]');
+              if (category) category.textContent = '人工审核 (' + count + ')';
+            }
+          }
+        }
         const container = document.getElementById('comments');
         if (!container) return;
         const restorePosition = preserveQueuePosition(container);
@@ -1352,11 +1366,12 @@ export function shell(input: { title: string; nonce: string; staff: Staff | null
           const heading = document.createElement('div'); heading.className = 'rule-review-title';
           const name = document.createElement('strong'); name.textContent = review.ruleName || '评论规则'; heading.append(name);
           const state = document.createElement('span'); state.className = 'rule-review-status';
-          state.textContent = ruleReviewLabel(review); heading.append(state);
+          state.textContent = ruleReviewLabel(review);
           if (review.decision === 'review' && review.status === 'open' && line.id) {
             const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.dataset.dismissReview = line.id; dismiss.textContent = '无需处理';
             dismiss.title = '从人工审核移除，保留评论，不发送回复'; heading.append(dismiss);
           }
+          heading.append(state);
           const reason = document.createElement('p'); reason.textContent = review.reason || ''; panel.append(heading, reason); item.append(panel);
         }
         if (view?.kind === 'message' && !line.own && line.id) {
@@ -1696,7 +1711,7 @@ function floorHtml(item: InboxComment, currentId: string, note: { depth: number;
     <div class="floor-top"><span class="who">${escapeHtml(name)}</span>${timestamp}<span class="floor-state${item.isOwn || item.replyStatus === 'sent' ? ' state-sent' : ''}">${item.isOwn ? `我方回复${item.operatorName ? ` · ${escapeHtml(item.operatorName)}` : ''}` : escapeHtml(stateLabel({ ...item, pendingCount: undefined }))}</span></div>
     ${label ? `<p class="reply-to">${escapeHtml(label)}</p>` : ''}
     <p>${escapeHtml(text)}</p>
-    ${item.ruleReview && !item.isOwn ? `<div class="rule-review"><div class="rule-review-title"><strong>${escapeHtml(item.ruleReview.ruleName)}</strong><span class="rule-review-status">${escapeHtml(ruleReviewLabel(item.ruleReview))}</span>${item.ruleReview.decision === 'review' && item.ruleReview.status === 'open' ? `<button type="button" data-dismiss-review="${escapeHtml(item.id)}" title="从人工审核移除，保留评论，不发送回复">无需处理</button>` : ''}</div><p>${escapeHtml(item.ruleReview.reason)}</p></div>` : ''}
+    ${item.ruleReview && !item.isOwn ? `<div class="rule-review"><div class="rule-review-title"><strong>${escapeHtml(item.ruleReview.ruleName)}</strong>${item.ruleReview.decision === 'review' && item.ruleReview.status === 'open' ? `<button type="button" data-dismiss-review="${escapeHtml(item.id)}" title="从人工审核移除，保留评论，不发送回复">无需处理</button>` : ''}<span class="rule-review-status">${escapeHtml(ruleReviewLabel(item.ruleReview))}</span></div><p>${escapeHtml(item.ruleReview.reason)}</p></div>` : ''}
   </article>`;
 }
 
@@ -1810,6 +1825,7 @@ export function renderWorkbench(view: WorkbenchView): string {
     nonce: view.nonce,
     staff: view.staff,
     section: platform === 'instagram' ? 'instagram' : 'comments',
+    reviewCounts: view.reviewCounts,
     body: `<div data-platform="${platform}" data-queue="${view.queue ?? 'all'}" class="workspace${selected && !view.focusList ? ' has-selection' : ''}">
       <section class="queue" aria-label="收件">
         <div class="list-head"><div><h2>${platform === 'instagram' ? 'Instagram' : 'Facebook'} 收件箱</h2></div><span class="count" id="queue-count" title="符合当前筛选的会话总数">${inboxPage.total}</span></div>
@@ -1818,7 +1834,7 @@ export function renderWorkbench(view: WorkbenchView): string {
           <button type="button" class="chip" data-filter="open" aria-pressed="${inboxFilters.state === 'open'}">待处理</button>
         </div>
         <div class="review-category"><span id="review-category-label">处理分类</span><div class="review-category-buttons" role="group" aria-labelledby="review-category-label">${([
-          ['all', '全部消息'], ['review', '人工审核'], ['rule_hidden', '规则隐藏'], ['dismissed', '无需处理'],
+          ['all', '全部消息'], ['review', `人工审核${view.reviewCounts ? ` (${view.reviewCounts[platform]})` : ''}`], ['rule_hidden', '规则隐藏'], ['dismissed', '无需处理'],
         ] as const).map(([value, label]) => `<button type="button" class="chip" data-queue-filter="${value}" aria-pressed="${(view.queue ?? 'all') === value}">${label}</button>`).join('')}</div></div>
         <div class="inbox-categories"><label>消息类型<select id="kind-filter"><option value="all">评论和私信</option><option value="comment"${inboxFilters.kind === 'comment' ? ' selected' : ''}>评论</option><option value="message"${inboxFilters.kind === 'message' ? ' selected' : ''}>私信</option></select></label><label>广告来源<select id="source-filter" title="按平台回传的广告来源识别；未识别不代表自然流量"><option value="all">全部来源</option><option value="ads">广告引流私信</option><option value="unknown">未识别广告来源</option></select></label></div>
         <label class="filter"><span class="sr">搜索主页或全部历史消息</span><input id="filter" type="search" maxlength="200" value="${escapeHtml(inboxFilters.q ?? '')}" placeholder="搜索主页或全部历史消息"></label>

@@ -196,6 +196,7 @@ export function createWorkbenchRouter(dependencies: WorkbenchDependencies): Rout
       platform,
       queue,
       comments,
+      reviewCounts: await dependencies.staff.pendingReviewCounts?.(staff),
       inboxPage: { total: page.total, hasMore: page.hasMore, nextCursor: page.nextCursor, endCursor: page.endCursor },
       inboxFilters: { q: filters.q ?? '', kind: filters.kind ?? 'all', state: filters.state ?? 'all' },
       selected,
@@ -218,7 +219,7 @@ export function createWorkbenchRouter(dependencies: WorkbenchDependencies): Rout
     }
     const platform = oneQuery(request.query.platform) === 'instagram' ? 'instagram' : 'facebook';
     const page = await listInboxPage(dependencies.staff, staff, platform, oneQuery(request.query.source), inboxQueue(request.query.queue), filters);
-    response.json({ total: page.total, hasMore: page.hasMore, nextCursor: page.nextCursor, endCursor: page.endCursor,
+    response.json({ reviewCounts: await dependencies.staff.pendingReviewCounts?.(staff), total: page.total, hasMore: page.hasMore, nextCursor: page.nextCursor, endCursor: page.endCursor,
       rows: page.rows.map(({ id, platform, kind, channelId, channelName, senderId, senderName,
       externalId, body, occurredAt, postId, postTitle, pendingCount, threadCount, adSource }) =>
       ({ id, platform, kind, channelId, channelName, senderId, senderName, externalId, body, occurredAt,
