@@ -819,7 +819,7 @@ export function shell(input: { title: string; nonce: string; staff: Staff | null
             if (badge) badge.textContent = ' (' + count + ')';
             if (platform === inboxPlatform) {
               const category = document.querySelector('[data-queue-filter="review"]');
-              if (category) category.textContent = '人工审核 (' + count + ')';
+              if (category) category.textContent = '待人工审核 (' + count + ')';
             }
           }
         }
@@ -1368,7 +1368,7 @@ export function shell(input: { title: string; nonce: string; staff: Staff | null
           const state = document.createElement('span'); state.className = 'rule-review-status';
           state.textContent = ruleReviewLabel(review);
           if (review.decision === 'review' && review.status === 'open' && line.id) {
-            const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.dataset.dismissReview = line.id; dismiss.textContent = '无需处理';
+            const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.dataset.dismissReview = line.id; dismiss.textContent = '点击标记无需处理';
             dismiss.title = '从人工审核移除，保留评论，不发送回复'; heading.append(dismiss);
           }
           heading.append(state);
@@ -1548,7 +1548,7 @@ export function shell(input: { title: string; nonce: string; staff: Staff | null
           notifyReply('已标记无需处理，评论保留', true);
         }
         await refreshQueue();
-      } catch (error) { button.disabled = false; button.textContent = '无需处理'; notifyReply(error.message || '标记失败，请重试。', false); }
+      } catch (error) { button.disabled = false; button.textContent = '点击标记无需处理'; notifyReply(error.message || '标记失败，请重试。', false); }
     });
     document.getElementById('floors')?.addEventListener('click', async event => {
       const button = event.target.closest('[data-comment-action]');
@@ -1711,7 +1711,7 @@ function floorHtml(item: InboxComment, currentId: string, note: { depth: number;
     <div class="floor-top"><span class="who">${escapeHtml(name)}</span>${timestamp}<span class="floor-state${item.isOwn || item.replyStatus === 'sent' ? ' state-sent' : ''}">${item.isOwn ? `我方回复${item.operatorName ? ` · ${escapeHtml(item.operatorName)}` : ''}` : escapeHtml(stateLabel({ ...item, pendingCount: undefined }))}</span></div>
     ${label ? `<p class="reply-to">${escapeHtml(label)}</p>` : ''}
     <p>${escapeHtml(text)}</p>
-    ${item.ruleReview && !item.isOwn ? `<div class="rule-review"><div class="rule-review-title"><strong>${escapeHtml(item.ruleReview.ruleName)}</strong>${item.ruleReview.decision === 'review' && item.ruleReview.status === 'open' ? `<button type="button" data-dismiss-review="${escapeHtml(item.id)}" title="从人工审核移除，保留评论，不发送回复">无需处理</button>` : ''}<span class="rule-review-status">${escapeHtml(ruleReviewLabel(item.ruleReview))}</span></div><p>${escapeHtml(item.ruleReview.reason)}</p></div>` : ''}
+    ${item.ruleReview && !item.isOwn ? `<div class="rule-review"><div class="rule-review-title"><strong>${escapeHtml(item.ruleReview.ruleName)}</strong>${item.ruleReview.decision === 'review' && item.ruleReview.status === 'open' ? `<button type="button" data-dismiss-review="${escapeHtml(item.id)}" title="从人工审核移除，保留评论，不发送回复">点击标记无需处理</button>` : ''}<span class="rule-review-status">${escapeHtml(ruleReviewLabel(item.ruleReview))}</span></div><p>${escapeHtml(item.ruleReview.reason)}</p></div>` : ''}
   </article>`;
 }
 
@@ -1834,7 +1834,7 @@ export function renderWorkbench(view: WorkbenchView): string {
           <button type="button" class="chip" data-filter="open" aria-pressed="${inboxFilters.state === 'open'}">待处理</button>
         </div>
         <div class="review-category"><span id="review-category-label">处理分类</span><div class="review-category-buttons" role="group" aria-labelledby="review-category-label">${([
-          ['all', '全部消息'], ['review', `人工审核${view.reviewCounts ? ` (${view.reviewCounts[platform]})` : ''}`], ['rule_hidden', '规则隐藏'], ['dismissed', '无需处理'],
+          ['all', '全部消息'], ['review', `待人工审核${view.reviewCounts ? ` (${view.reviewCounts[platform]})` : ''}`], ['rule_hidden', '规则隐藏'], ['dismissed', '无需处理'],
         ] as const).map(([value, label]) => `<button type="button" class="chip" data-queue-filter="${value}" aria-pressed="${(view.queue ?? 'all') === value}">${label}</button>`).join('')}</div></div>
         <div class="inbox-categories"><label>消息类型<select id="kind-filter"><option value="all">评论和私信</option><option value="comment"${inboxFilters.kind === 'comment' ? ' selected' : ''}>评论</option><option value="message"${inboxFilters.kind === 'message' ? ' selected' : ''}>私信</option></select></label><label>广告来源<select id="source-filter" title="按平台回传的广告来源识别；未识别不代表自然流量"><option value="all">全部来源</option><option value="ads">广告引流私信</option><option value="unknown">未识别广告来源</option></select></label></div>
         <label class="filter"><span class="sr">搜索主页或全部历史消息</span><input id="filter" type="search" maxlength="200" value="${escapeHtml(inboxFilters.q ?? '')}" placeholder="搜索主页或全部历史消息"></label>

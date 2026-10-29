@@ -415,7 +415,7 @@ test('review counts show each platform total and refresh independently of conver
   assert.equal(page.status, 200);
   assert.match(page.text, /data-review-count="facebook"[^>]*> \(54\)<\/span>/);
   assert.match(page.text, /data-review-count="instagram"[^>]*> \(9\)<\/span>/);
-  assert.match(page.text, /data-queue-filter="review"[^>]*>人工审核 \(9\)<\/button>/);
+  assert.match(page.text, /data-queue-filter="review"[^>]*>待人工审核 \(9\)<\/button>/);
   counts = { facebook: 53, instagram: 0 };
   const queue = await request(app).get('/inbox/workbench/queue?platform=instagram&q=missing&kind=message')
     .set('Cookie', `sig_staff=${session}`);
